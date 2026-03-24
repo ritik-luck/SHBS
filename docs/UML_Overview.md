@@ -5,12 +5,18 @@ UML Overview – Self-Healing Backend System
 This document provides an overview of the UML Use Case Diagram for the Self-Healing Backend System.
 The diagram represents the high-level functional behavior of the system, the actors interacting with it, and how the system detects failures, applies self-healing strategies, and recovers automatically while remaining observable to administrators.
 
+
 ⸻
 
 1.1 UML Use Case Diagram
 
 The following UML Use Case Diagram provides a high-level overview of the Self-Healing Backend System.
 It illustrates the primary actors, system boundary, major subsystems, and the interactions that enable failure detection, self-healing decisions, recovery management, and administrative monitoring.
+
+
+![UML Use Case Diagram](../images/uml.png)
+
+*Figure: UML Use Case Diagram for Self-Healing Backend System*
 
 
 ⸻

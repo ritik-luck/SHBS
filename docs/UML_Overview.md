@@ -14,7 +14,7 @@ The following UML Use Case Diagram provides a high-level overview of the Self-He
 It illustrates the primary actors, system boundary, major subsystems, and the interactions that enable failure detection, self-healing decisions, recovery management, and administrative monitoring.
 
 
-![UML Use Case Diagram](../uml.png)
+![UML Use Case Diagram](./uml.png)
 
 *Figure: UML Use Case Diagram for Self-Healing Backend System*
 

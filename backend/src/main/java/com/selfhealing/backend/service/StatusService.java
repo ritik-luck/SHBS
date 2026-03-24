@@ -1,4 +1,4 @@
-package com.selfhealing.backend.Service;
+package com.selfhealing.backend.service;
 
 import com.selfhealing.backend.model.SystemStatusResponse;
 import org.slf4j.Logger;

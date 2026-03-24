@@ -1,6 +1,6 @@
 package com.selfhealing.backend.Controller;
 
-import com.selfhealing.backend.Service.StatusService;
+import com.selfhealing.backend.service.StatusService;
 import com.selfhealing.backend.model.FailureMetric;
 import com.selfhealing.backend.model.SystemStatusResponse;
 import com.selfhealing.backend.repository.FailureMetricRepository;
@@ -20,7 +20,7 @@ public class HelloController {
     public SystemStatusResponse getStatus() {
 
         if (Math.random() > 0.5) {
-            FailureMetric metric = new FailureMetric(1);
+            FailureMetric metric = new FailureMetric(1 , "auth-service" , "timeout");
             repository.save(metric);
             throw new RuntimeException("Random failure occurred");
         }

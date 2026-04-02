@@ -1,12 +1,23 @@
 package com.selfhealing.backend.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 
 @Entity
 public class FailureMetric {
+
+    @Enumerated(EnumType.STRING)
+    private FailureCategory category;
+
+    @Enumerated(EnumType.STRING)
+    private FailureSeverity severity;
+
+    private boolean resolved;
+
+    private String endpoint;
+
+    private String stackTrace;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,11 +36,16 @@ public class FailureMetric {
 
     public FailureMetric() {}
 
-    public FailureMetric(int failureCount, String serviceName, String failureType) {
-        this.failureCount = failureCount;
+    public FailureMetric(String serviceName, String type,
+                         FailureCategory category,
+                         FailureSeverity severity) {
+
         this.serviceName = serviceName;
-        this.failureType = failureType;
-        this.timestamp = java.time.LocalDateTime.now();
+        this.failureType = type;
+        this.category = category;
+        this.severity = severity;
+        this.timestamp = LocalDateTime.now();
+        this.resolved = false;
     }
 
     public Long getId() {

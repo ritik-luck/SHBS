@@ -1,9 +1,8 @@
-package com.selfhealing.backend.Controller;
+package com.selfhealing.backend.controller;
 
 import com.selfhealing.backend.repository.FailureMetricRepository;
 import com.selfhealing.backend.service.CircuitBreakerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

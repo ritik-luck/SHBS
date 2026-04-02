@@ -1,33 +1,25 @@
-package com.selfhealing.backend.Controller;
+package com.selfhealing.backend.controller;
 
-import com.selfhealing.backend.service.StatusService;
-import com.selfhealing.backend.model.FailureMetric;
-import com.selfhealing.backend.model.SystemStatusResponse;
-import com.selfhealing.backend.repository.FailureMetricRepository;
+import com.selfhealing.backend.service.FailureMetricService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @RestController
 public class HelloController {
 
+    @RateLimiter(name = "apiLimiter", fallbackMethod = "rateLimitFallback")
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello, system is running!";
+    }
+
     @Autowired
-    private StatusService statusService;
-    @Autowired
-    private FailureMetricRepository repository;
+    FailureMetricService failureMetricService;
 
-    @GetMapping("/status")
-    public SystemStatusResponse getStatus() {
-
-        if (Math.random() > 0.5) {
-            FailureMetric metric = new FailureMetric(1 , "auth-service" , "timeout");
-            repository.save(metric);
-            throw new RuntimeException("Random failure occurred");
-        }
-
-        return new SystemStatusResponse(
-                "UP",
-                "System is running normally"
-        );
+    public String rateLimitFallback(Exception e) {
+        failureMetricService.recordFailure("rate_limit", "api-service");
+        return "Too many requests! Try again later.";
     }
 }

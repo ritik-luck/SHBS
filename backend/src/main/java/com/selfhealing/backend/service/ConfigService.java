@@ -27,4 +27,8 @@ public class ConfigService {
         SystemConfig config = new SystemConfig(key, value, desc);
         repository.save(config);
     }
+
+    public void set(String key, String value, String description) {
+        update(key, value, description);
+    }
 }

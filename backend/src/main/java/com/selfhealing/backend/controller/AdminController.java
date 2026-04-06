@@ -6,6 +6,7 @@ import com.selfhealing.backend.repository.AuditLogRepository;
 import com.selfhealing.backend.repository.FailureMetricRepository;
 import com.selfhealing.backend.repository.SystemConfigRepository;
 import com.selfhealing.backend.service.CircuitBreakerService;
+import com.selfhealing.backend.service.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,7 +27,9 @@ public class AdminController {
     @Autowired
     SimpMessagingTemplate messagingTemplate;
     @Autowired
-    private SystemConfigRepository configRepo;
+    SystemConfigRepository configRepo;
+    @Autowired
+    ConfigService configService;
 
 
     @GetMapping("/admin/alert-status")
@@ -38,6 +41,16 @@ public class AdminController {
             messagingTemplate.convertAndSend("/topic/alerts", "CRITICAL");
         }
         return "NORMAL";
+    }
+
+    @PutMapping("/admin/fallback")
+    public String updateFallback(@RequestParam String endpoint,
+                                 @RequestParam String message) {
+
+        String key = "fallback_" + endpoint;
+        configService.set(key, message, "Updated fallback for " + endpoint);
+
+        return "Fallback updated for " + endpoint;
     }
 
     @GetMapping("/admin/config")

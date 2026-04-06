@@ -13,6 +13,7 @@ public class ConfigService {
     @Autowired
     private SystemConfigRepository repository;
 
+
     public String get(String key, String defaultValue) {
         return repository.findById(key)
                 .map(SystemConfig::getConfigValue)

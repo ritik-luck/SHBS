@@ -7,6 +7,7 @@ import com.selfhealing.backend.repository.FailureMetricRepository;
 import com.selfhealing.backend.repository.SystemConfigRepository;
 import com.selfhealing.backend.service.CircuitBreakerService;
 import com.selfhealing.backend.service.ConfigService;
+import com.selfhealing.backend.service.FailureMetricService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -23,6 +25,8 @@ public class AdminController {
     @Autowired
     FailureMetricRepository failureMetricRepository;
     @Autowired
+    FailureMetricService failureMetricService;
+    @Autowired
     AuditLogRepository auditLogRepository;
     @Autowired
     SimpMessagingTemplate messagingTemplate;
@@ -30,6 +34,23 @@ public class AdminController {
     SystemConfigRepository configRepo;
     @Autowired
     ConfigService configService;
+
+
+    @PostMapping("/admin/simulate")
+    public String simulateFailure(@RequestBody Map<String, Object> payload) {
+
+        String type = (String) payload.getOrDefault("type", "unknown");
+        String service = (String) payload.getOrDefault("service", "default-service");
+
+        int count = Integer.parseInt(payload.getOrDefault("count", 1).toString());
+
+        for (int i = 0; i < count; i++) {
+            failureMetricService.recordFailure(type, service);
+        }
+
+        return "✅ Simulated " + count + " failures of type '" + type +
+                "' for service '" + service + "'";
+    }
 
 
     @GetMapping("/admin/alert-status")
@@ -71,6 +92,22 @@ public class AdminController {
     @GetMapping("/admin/audit-logs")
     public Page<AuditLog> auditlogs(Pageable pageable){
         return auditLogRepository.findAll(pageable);
+    }
+
+    @GetMapping("/admin/audit-logs/action/{actionType}")
+    public Page<AuditLog> getLogsByAction(@PathVariable String actionType) {
+        return auditLogRepository.findByActionType(actionType);
+    }
+
+    @GetMapping("/admin/audit-logs/date")
+    public List<AuditLog> getLogsByDate(
+            @RequestParam String from,
+            @RequestParam String to) {
+
+        return auditLogRepository.findByTimestampBetween(
+                java.time.LocalDateTime.parse(from),
+                java.time.LocalDateTime.parse(to)
+        );
     }
 
     @PostMapping("/admin/reset-circuit")

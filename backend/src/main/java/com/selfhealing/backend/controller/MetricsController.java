@@ -7,7 +7,10 @@ import com.selfhealing.backend.service.CircuitBreakerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -27,9 +30,39 @@ public class MetricsController {
         return failureMetricRepository.count();
     }
 
-    @GetMapping("/metrics/services")
+
+    @GetMapping("/metrics/failures/services")
     public List<Object[]> failuresByService(){
         return failureMetricRepository.countFailuresByService();
+    }
+
+    @GetMapping("/metrics/failures/type")
+    public List<Object[]> byType() {
+        return failureMetricRepository.countFailuresByType();
+    }
+
+    @GetMapping("/metrics/failures/severity")
+    public List<Object[]> bySeverity() {
+        return failureMetricRepository.countFailuresBySeverity();
+    }
+
+    @GetMapping("/metrics/failures/timeline")
+    public List<Object[]> timeline(@RequestParam(defaultValue = "1h") String period) {
+
+        LocalDateTime start;
+
+        switch (period) {
+            case "24h":
+                start = LocalDateTime.now().minusHours(24);
+                break;
+            case "30m":
+                start = LocalDateTime.now().minusMinutes(30);
+                break;
+            default:
+                start = LocalDateTime.now().minusHours(1);
+        }
+
+        return failureMetricRepository.countFailuresTimeline(start);
     }
 
     @GetMapping("/system/state")

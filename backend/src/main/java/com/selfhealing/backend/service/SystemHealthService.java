@@ -9,24 +9,33 @@ import org.springframework.stereotype.Service;
 public class SystemHealthService {
 
     @Autowired
-    private FailureMetricRepository repository;
+    FailureMetricRepository failureMetricRepository;
+    @Autowired
+    CircuitBreakerService circuitBreakerService;
 
-    public int calculateHealthScore() {
-
-        long failures = repository.count();
-
-        int score = 100 - (int)(failures * 10);
-
-        return Math.max(score, 0);
-    }
-
-    public SystemHealthStatus getHealthStatus() {
-
-        int score = calculateHealthScore();
+    public SystemHealthStatus getHealthStatus(int score) {
 
         if (score >= 80) return SystemHealthStatus.HEALTHY;
         if (score >= 40) return SystemHealthStatus.DEGRADED;
 
         return SystemHealthStatus.UNHEALTHY;
     }
+
+    public int calculateHealthScore() {
+
+        long failures = failureMetricRepository.count();
+        String state = circuitBreakerService.getState().toString();
+
+        int score = 100;
+
+        // 🔻 Reduce score based on failures
+        score -= failures * 5;
+
+        // 🔻 Circuit breaker impact
+        if (state.equals("OPEN")) score -= 40;
+        else if (state.equals("HALF_OPEN")) score -= 20;
+
+        return Math.max(score, 0);
+    }
+
 }

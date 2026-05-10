@@ -12,10 +12,19 @@ public class SystemHealthService {
     FailureMetricRepository failureMetricRepository;
     @Autowired
     CircuitBreakerService circuitBreakerService;
+    @Autowired
+    AlertService alertService;
 
     public SystemHealthStatus getHealthStatus(int score) {
 
         if (score >= 80) return SystemHealthStatus.HEALTHY;
+        if (score < 30) {
+            alertService.sendAlert(
+                    "CRITICAL",
+                    "System health is UNHEALTHY: " + score,
+                    "HEALTH"
+            );
+        }
         if (score >= 40) return SystemHealthStatus.DEGRADED;
 
         return SystemHealthStatus.UNHEALTHY;

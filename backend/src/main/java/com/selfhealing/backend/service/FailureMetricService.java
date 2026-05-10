@@ -23,6 +23,8 @@ public class FailureMetricService {
     AuditService auditService;
     @Autowired
     HealingStrategyEngine healingEngine;
+    @Autowired
+    AlertService alertService;
 
 
     public String recordFailure(String type, String serviceName) {
@@ -49,6 +51,14 @@ public class FailureMetricService {
                 "SYSTEM",
                 "SUCCESS"
         );
+
+        if (severity == FailureSeverity.CRITICAL) {
+            alertService.sendAlert(
+                    "CRITICAL",
+                    "Critical failure detected: " + type,
+                    "FAILURE"
+            );
+        }
 
         circuitBreakerService.recordFailure(count);
 

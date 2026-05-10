@@ -17,6 +17,8 @@ public class RecoveryService {
     private AuditService auditService;
     @Autowired
     RecoveryMetricRepository recoveryRepo;
+    @Autowired
+    AlertService alertService;
 
 
     private int successCount = 0;
@@ -54,6 +56,7 @@ public class RecoveryService {
         if (!healthy) {
             retryAttempts++;
             auditService.log("RECOVERY_FAILED", "Health check failed", "SYSTEM", "FAILURE");
+            alertService.sendAlert("WARNING", "Recovery attempt failed", "RECOVERY");
             increaseBackoff();
             return;
         }

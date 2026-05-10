@@ -1,7 +1,9 @@
 package com.selfhealing.backend.controller;
 
+import com.selfhealing.backend.model.Alert;
 import com.selfhealing.backend.model.AuditLog;
 import com.selfhealing.backend.model.SystemConfig;
+import com.selfhealing.backend.repository.AlertRepository;
 import com.selfhealing.backend.repository.AuditLogRepository;
 import com.selfhealing.backend.repository.FailureMetricRepository;
 import com.selfhealing.backend.repository.SystemConfigRepository;
@@ -34,6 +36,8 @@ public class AdminController {
     SystemConfigRepository configRepo;
     @Autowired
     ConfigService configService;
+    @Autowired
+    AlertRepository alertRepository;
 
 
     @PostMapping("/admin/simulate")
@@ -95,8 +99,8 @@ public class AdminController {
     }
 
     @GetMapping("/admin/audit-logs/action/{actionType}")
-    public Page<AuditLog> getLogsByAction(@PathVariable String actionType) {
-        return auditLogRepository.findByActionType(actionType);
+    public Page<AuditLog> getLogsByAction(@PathVariable String actionType , Pageable pageable) {
+        return auditLogRepository.findByActionType(actionType , pageable);
     }
 
     @GetMapping("/admin/audit-logs/date")
@@ -119,10 +123,14 @@ public class AdminController {
 
     @PostMapping("/admin/clear-metrics")
     public String clearMetrics(){
-
         failureMetricRepository.deleteAll();
         messagingTemplate.convertAndSend("/topic/metrics", "update");
-
         return "Failure metrics cleared";
     }
+
+    @GetMapping("/admin/alerts")
+    public List<Alert> getAlerts() {
+        return alertRepository.findAll();
+    }
+
 }

@@ -15,6 +15,9 @@ public class CircuitBreakerService {
     ConfigService configService;
     @Autowired
     FailureMetricRepository repository;
+    @Autowired
+    AlertService alertService;
+
     private CircuitBreakerState state = CircuitBreakerState.CLOSED;
     private long lastFailureTime = 0L;
     private long RECOVERY_TIMEOUT = 10000; // default 10s, can be overridden from config

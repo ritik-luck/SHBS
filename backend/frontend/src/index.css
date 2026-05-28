@@ -6,27 +6,27 @@
 
 :root {
   /* ── Core Palette ── */
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #111827;
-  --bg-card: rgba(17, 24, 39, 0.7);
-  --bg-card-hover: rgba(17, 24, 39, 0.9);
-  --bg-glass: rgba(255, 255, 255, 0.03);
-  --bg-sidebar: #080c16;
+  --bg-primary: #0a0b0d;      /* Matte carbon black */
+  --bg-secondary: #121316;    /* Dark basalt gray */
+  --bg-card: rgba(18, 19, 23, 0.7); /* Translucent obsidian card */
+  --bg-card-hover: rgba(26, 27, 33, 0.85);
+  --bg-glass: rgba(255, 255, 255, 0.015);
+  --bg-sidebar: #060708;      /* Deep black carbon */
 
   /* ── Borders ── */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --border-accent: rgba(99, 102, 241, 0.3);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-hover: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(129, 140, 248, 0.2);
 
   /* ── Text ── */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
   --text-muted: #64748b;
-  --text-inverse: #0f172a;
+  --text-inverse: #020617;
 
   /* ── Accent Colors ── */
-  --accent-indigo: #6366f1;
-  --accent-indigo-glow: rgba(99, 102, 241, 0.15);
+  --accent-indigo: #818cf8;    /* Muted violet-indigo */
+  --accent-indigo-glow: rgba(129, 140, 248, 0.1);
   --accent-blue: #3b82f6;
   --accent-cyan: #06b6d4;
   --accent-emerald: #10b981;

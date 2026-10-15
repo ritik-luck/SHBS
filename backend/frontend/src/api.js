@@ -1,9 +1,48 @@
 import axios from "axios";
 
+const API_BASE = process.env.REACT_APP_API_URL || "/api";
+
 const API = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: API_BASE,
   timeout: 10000,
 });
+
+// ── JWT Auth Interceptors ──
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("jwtToken");
+  if (token && config.url.startsWith("/admin")) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+API.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.status === 403) {
+      const username = prompt("Admin Authentication Required.\nUsername:");
+      if (username) {
+        const password = prompt("Password:");
+        if (password) {
+          try {
+            const loginRes = await axios.post(`${API_BASE}/admin/login`, {
+              username,
+              password,
+            });
+            const token = loginRes.data.token;
+            localStorage.setItem("jwtToken", token);
+            // Retry the original request with the new token
+            error.config.headers.Authorization = `Bearer ${token}`;
+            return axios(error.config);
+          } catch (loginErr) {
+            alert("Login failed. Invalid credentials.");
+          }
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // ── Health ──
 export const getHealth = () => API.get("/health");
@@ -23,6 +62,9 @@ export const getFailuresTimeline = (period = "1h") =>
 // ── Recovery ──
 export const getRecoveryMetrics = () => API.get("/metrics/recovery");
 export const getRecoverySummary = () => API.get("/metrics/recovery/summary");
+
+// ── SLO ──
+export const getSLOMetrics = () => API.get("/metrics/slo");
 
 // ── Admin: Audit Logs ──
 export const getAuditLogs = (page = 0, size = 20) =>

@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - "prometheus-alerts.yml"
+  - "prometheus_rules.yml"
+
+scrape_configs:
+  - job_name: 'shbs-backend'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    dns_sd_configs:
+      - names:
+          - 'backend'
+        type: 'A'
+        port: 8080
+  
+  - job_name: 'shbs-inventory'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    dns_sd_configs:
+      - names:
+          - 'inventory-service'
+        type: 'A'
+        port: 8081

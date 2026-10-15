@@ -12,8 +12,8 @@ public class RecoveryMetric {
 
     private LocalDateTime timestamp;
 
-    private String stage; // HEALTH_CHECK, TEST_REQUEST, FULL_RECOVERY
-    private String result; // SUCCESS / FAILURE
+    private String stage; 
+    private String result; 
 
     private long durationMs;
 

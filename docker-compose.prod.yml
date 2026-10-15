@@ -1,0 +1,32 @@
+# ══════════════════════════════════════════════════════════════════════
+# docker-compose.prod.yml — PRODUCTION OVERRIDES
+# ══════════════════════════════════════════════════════════════════════
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# All secrets MUST be provided via environment variables or a secrets manager.
+# ══════════════════════════════════════════════════════════════════════
+
+services:
+  backend:
+    # In production, use pre-built images from ECR instead of building locally
+    # image: ${ECR_REGISTRY}/shbs/backend:${IMAGE_TAG}
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - CORS_ORIGINS=${CORS_ORIGINS}
+
+  frontend:
+    # image: ${ECR_REGISTRY}/shbs/frontend:${IMAGE_TAG}
+    build:
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL}
+        REACT_APP_WS_URL: ${REACT_APP_WS_URL}
+
+  inventory-service:
+    # image: ${ECR_REGISTRY}/shbs/inventory-service:${IMAGE_TAG}
+    environment:
+      - CHAOS_FAIL_RATE=0.0
+      - CHAOS_LATENCY_MS=0
+
+  nginx:
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro

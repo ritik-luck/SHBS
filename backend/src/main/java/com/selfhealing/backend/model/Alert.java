@@ -10,9 +10,9 @@ public class Alert {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String level; // INFO, WARNING, CRITICAL
+    private String level; 
     private String message;
-    private String source; // SYSTEM / RECOVERY / CIRCUIT
+    private String source; 
     private LocalDateTime timestamp;
 
     public Alert() {}

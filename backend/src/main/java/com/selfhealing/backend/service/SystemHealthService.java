@@ -2,18 +2,26 @@ package com.selfhealing.backend.service;
 
 import com.selfhealing.backend.model.SystemHealthStatus;
 import com.selfhealing.backend.repository.FailureMetricRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SystemHealthService {
 
-    @Autowired
-    FailureMetricRepository failureMetricRepository;
-    @Autowired
-    CircuitBreakerService circuitBreakerService;
-    @Autowired
-    AlertService alertService;
+    private static final Logger log = LoggerFactory.getLogger(SystemHealthService.class);
+
+    private final FailureMetricRepository failureMetricRepository;
+    private final CircuitBreakerService circuitBreakerService;
+    private final AlertService alertService;
+
+    public SystemHealthService(FailureMetricRepository failureMetricRepository,
+                               CircuitBreakerService circuitBreakerService,
+                               AlertService alertService) {
+        this.failureMetricRepository = failureMetricRepository;
+        this.circuitBreakerService = circuitBreakerService;
+        this.alertService = alertService;
+    }
 
     public SystemHealthStatus getHealthStatus(int score) {
 
@@ -37,10 +45,10 @@ public class SystemHealthService {
 
         int score = 100;
 
-        // 🔻 Reduce score based on failures
+        
         score -= failures * 5;
 
-        // 🔻 Circuit breaker impact
+
         if (state.equals("OPEN")) score -= 40;
         else if (state.equals("HALF_OPEN")) score -= 20;
 

@@ -1,0 +1,122 @@
+# ══════════════════════════════════════════════════════════════════════
+# Deploy Pipeline — Deploy by immutable image digest
+# ══════════════════════════════════════════════════════════════════════
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options: [staging, production]
+        default: staging
+      image_tag:
+        description: 'Image tag to deploy (e.g., 20260906-abc1234)'
+        required: true
+        type: string
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      # ── Determine image tag ──
+      - name: Resolve image tag
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+            echo "env=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
+          else
+            TAG=$(date +%Y%m%d)-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "env=staging" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Deploy (ECS update or docker compose pull) ──
+      - name: Deploy to ${{ steps.resolve.outputs.env }}
+        id: deploy
+        run: |
+          echo "🚀 Deploying image tag: ${{ steps.resolve.outputs.tag }}"
+          echo "📍 Environment: ${{ steps.resolve.outputs.env }}"
+          # When ECS is ready:
+          # aws ecs update-service \
+          #   --cluster shbs-${{ steps.resolve.outputs.env }} \
+          #   --service backend \
+          #   --force-new-deployment
+          echo "deploy_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      # ── Smoke Test with Poll + Timeout ──
+      - name: Smoke test (poll readiness)
+        run: |
+          HEALTH_URL="${{ vars.HEALTH_URL || 'http://localhost' }}/actuator/health/readiness"
+          TIMEOUT=120
+          INTERVAL=5
+          ELAPSED=0
+
+          echo "⏳ Polling $HEALTH_URL (timeout: ${TIMEOUT}s)..."
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health check passed after ${ELAPSED}s"
+              exit 0
+            fi
+            echo "  ⏳ Status: $HTTP_CODE (${ELAPSED}s / ${TIMEOUT}s)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "❌ Health check failed after ${TIMEOUT}s"
+          exit 1
+
+      # ── Rollback on failure ──
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "🔄 Rolling back to previous known-good deployment..."
+          # When ECS is ready:
+          # Previous task definition is automatically stored by ECS
+          # aws ecs update-service \
+          #   --cluster shbs-${{ steps.resolve.outputs.env }} \
+          #   --service backend \
+          #   --task-definition <previous-task-def-arn>
+          echo "⚠️ Manual rollback required until ECS is configured"
+
+      # ── Record deployment ──
+      - name: Record deployment
+        if: success()
+        run: |
+          cat > deployment-record.json << EOF
+          {
+            "version": "${{ steps.resolve.outputs.tag }}",
+            "environment": "${{ steps.resolve.outputs.env }}",
+            "deployed_at": "${{ steps.deploy.outputs.deploy_time }}",
+            "deployed_by": "${{ github.actor }}",
+            "git_sha": "${{ github.sha }}",
+            "status": "success"
+          }
+          EOF
+          cat deployment-record.json
+
+      - name: Upload deployment record
+        if: success()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # v4.3.3
+        with:
+          name: deployment-record-${{ steps.resolve.outputs.tag }}
+          path: deployment-record.json
+          retention-days: 365

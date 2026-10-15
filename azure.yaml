@@ -1,0 +1,25 @@
+name: shbs
+metadata:
+  template: shbs-container-apps
+services:
+  backend:
+    project: ./backend
+    host: containerapp
+    language: docker
+    docker:
+      path: ./Dockerfile
+      remoteBuild: false
+  inventory2:
+    project: ./inventory-service
+    host: containerapp
+    language: docker
+    docker:
+      path: ./Dockerfile
+      remoteBuild: false
+  frontend:
+    project: ./backend/frontend
+    host: containerapp
+    language: docker
+    docker:
+      path: ./Dockerfile
+      remoteBuild: false

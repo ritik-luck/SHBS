@@ -1,0 +1,14 @@
+environment        = "prod"
+backend_cpu        = 1024
+backend_memory     = 2048
+backend_desired_count = 2
+frontend_cpu       = 256
+frontend_memory    = 512
+inventory_cpu      = 512
+inventory_memory   = 1024
+db_instance_class  = "db.t3.small"
+db_allocated_storage = 50
+db_multi_az        = true
+redis_node_type    = "cache.t3.micro"
+# domain_name      = "shbs.example.com"  # Set your real domain
+domain_name        = ""

@@ -1,0 +1,17 @@
+# Local environment and deployment state
+.env
+.env.*
+!.env.example
+!.env.development
+!.env.production
+.azure/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+
+# Build output and dependencies
+**/node_modules/
+**/target/
+*.log

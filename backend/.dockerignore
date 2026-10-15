@@ -1,0 +1,16 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.git
+.azure
+frontend/node_modules/
+frontend/build/
+frontend/starter.zip
+.idea
+.DS_Store
+*.class
+*.jar
+*.war
+*.ear
+*.log

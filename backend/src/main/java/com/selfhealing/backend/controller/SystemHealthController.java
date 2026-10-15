@@ -7,25 +7,32 @@ import com.selfhealing.backend.repository.HealthMetricRepository;
 import com.selfhealing.backend.service.CircuitBreakerService;
 import com.selfhealing.backend.service.FailureMetricService;
 import com.selfhealing.backend.service.SystemHealthService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "${cors.allowed-origins}")
 @RestController
 public class SystemHealthController {
 
-    @Autowired
-    FailureMetricService failureMetricService;
-    @Autowired
-    CircuitBreakerService circuitBreakerService;
-    @Autowired
-    SystemHealthService healthService;
-    @Autowired
-    HealthMetricRepository healthMetricRepository;
+    private final FailureMetricService failureMetricService;
+    private final CircuitBreakerService circuitBreakerService;
+    private final SystemHealthService healthService;
+    private final HealthMetricRepository healthMetricRepository;
+
+    public SystemHealthController(FailureMetricService failureMetricService,
+                                  CircuitBreakerService circuitBreakerService,
+                                  SystemHealthService healthService,
+                                  HealthMetricRepository healthMetricRepository) {
+        this.failureMetricService = failureMetricService;
+        this.circuitBreakerService = circuitBreakerService;
+        this.healthService = healthService;
+        this.healthMetricRepository = healthMetricRepository;
+    }
 
         @GetMapping("/health")
         public Map<String, Object> getHealth() {
@@ -47,7 +54,7 @@ public class SystemHealthController {
     }
 
     @GetMapping("/health/history")
-    public List<HealthMetric> history() {
-        return healthMetricRepository.findAll();
+    public Page<HealthMetric> history(Pageable pageable) {
+        return healthMetricRepository.findAll(pageable);
     }
 }

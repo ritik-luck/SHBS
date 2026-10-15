@@ -6,5 +6,7 @@ public enum HealingStrategy {
     SERVE_DEGRADED,
     SERVE_FALLBACK,
     TRIGGER_RECOVERY,
-    ALERT_ADMIN
+    ALERT_ADMIN,
+    DISABLE_FEATURE,
+    REDUCE_TRAFFIC
 }

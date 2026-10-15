@@ -2,7 +2,6 @@ package com.selfhealing.backend.service;
 
 import com.selfhealing.backend.model.SystemConfig;
 import com.selfhealing.backend.repository.SystemConfigRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -10,8 +9,11 @@ import java.util.Optional;
 @Service
 public class ConfigService {
 
-    @Autowired
-    private SystemConfigRepository repository;
+    private final SystemConfigRepository repository;
+
+    public ConfigService(SystemConfigRepository repository) {
+        this.repository = repository;
+    }
 
 
     public String get(String key, String defaultValue) {

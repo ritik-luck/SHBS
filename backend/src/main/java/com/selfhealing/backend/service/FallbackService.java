@@ -1,22 +1,16 @@
 package com.selfhealing.backend.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class FallbackService {
 
-    @Autowired
-    ConfigService configService;
+    private final ConfigService configService;
 
-    private final Map<String, Object> fallbackResponses = new HashMap<>();
-
-    public FallbackService() {
-        // Default fallback configs (can later move to DB)
-        fallbackResponses.put("/hello", "Service temporarily unavailable. Please try again later.");
+    public FallbackService(ConfigService configService) {
+        this.configService = configService;
     }
 
     public Object getFallback(String endpoint) {
@@ -31,9 +25,5 @@ public class FallbackService {
                 "endpoint" , endpoint,
                 "timestamp", System.currentTimeMillis()
         );
-    }
-
-    public void updateFallback(String endpoint, Object response) {
-        fallbackResponses.put(endpoint, response);
     }
 }

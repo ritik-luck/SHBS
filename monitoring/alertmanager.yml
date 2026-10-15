@@ -1,0 +1,62 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+route:
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'slack-default'
+  routes:
+    # SEV1/CRITICAL alerts bypass grouping delays and page the on-call team immediately
+    - matchers:
+        - severity=~"SEV1|CRITICAL"
+      receiver: 'pagerduty-critical'
+      group_wait: 0s
+      repeat_interval: 1h
+    
+    # SEV2/HIGH alerts go to a specific high-priority slack channel
+    - matchers:
+        - severity=~"SEV2|HIGH"
+      receiver: 'slack-high-priority'
+      group_wait: 10s
+    
+    # SEV4/LOW alerts or purely informational alerts can go to email or a low-noise channel
+    - matchers:
+        - severity=~"SEV4|LOW|INFO"
+      receiver: 'email-informational'
+
+receivers:
+  - name: 'slack-default'
+    slack_configs:
+      - channel: '#shbs-alerts'
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: >-
+          {{ range .Alerts }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            *Severity:* {{ .Labels.severity }}
+          {{ end }}
+
+  - name: 'slack-high-priority'
+    slack_configs:
+      - channel: '#shbs-critical-alerts'
+        send_resolved: true
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+        send_resolved: true
+
+  - name: 'email-informational'
+    email_configs:
+      - to: 'sre-team@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager'
+        auth_password: 'YOUR_SMTP_PASSWORD'
+        send_resolved: false
+
+# Maintenance silences can be added via the Alertmanager UI or API.

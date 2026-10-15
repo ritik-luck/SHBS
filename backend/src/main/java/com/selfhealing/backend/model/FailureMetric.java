@@ -25,13 +25,9 @@ public class FailureMetric {
 
     private int failureCount;
 
-    // name of the service/component where failure happened
+    
     private String serviceName;
-
-    // type of failure (timeout, database_error, network_error, etc.)
     private String failureType;
-
-    // timestamp when the failure occurred
     private java.time.LocalDateTime timestamp;
 
     public FailureMetric() {}

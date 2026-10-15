@@ -4,20 +4,22 @@ import com.selfhealing.backend.model.HealthMetric;
 import com.selfhealing.backend.model.SystemHealthStatus;
 import com.selfhealing.backend.repository.HealthMetricRepository;
 import com.selfhealing.backend.service.SystemHealthService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class HealthScheduler {
 
-    @Autowired
-    private SystemHealthService healthService;
+    private final SystemHealthService healthService;
+    private final HealthMetricRepository repo;
 
-    @Autowired
-    private HealthMetricRepository repo;
+    public HealthScheduler(SystemHealthService healthService,
+                           HealthMetricRepository repo) {
+        this.healthService = healthService;
+        this.repo = repo;
+    }
 
-    @Scheduled(fixedRate = 5000) // every 5 sec
+    @Scheduled(fixedRate = 5000) 
     public void captureHealth() {
 
         int score = healthService.calculateHealthScore();

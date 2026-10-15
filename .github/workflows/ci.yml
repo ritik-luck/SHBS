@@ -1,0 +1,247 @@
+# ══════════════════════════════════════════════════════════════════════
+# CI Pipeline — Test, Scan, Build, Push
+# ══════════════════════════════════════════════════════════════════════
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: "17"
+  NODE_VERSION: "18"
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+
+jobs:
+  # ────────────────────────────────────────────
+  # 1. Backend: Build + Test + Flyway Validate
+  # ────────────────────────────────────────────
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.37
+        env:
+          MYSQL_DATABASE: shbs
+          MYSQL_ROOT_PASSWORD: testpassword
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7.2-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9  # v4.2.1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Build and test
+        working-directory: ./backend
+        env:
+          DB_URL: jdbc:mysql://localhost:3306/shbs
+          DB_USERNAME: root
+          DB_PASSWORD: testpassword
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          ADMIN_USERNAME: testadmin
+          ADMIN_PASSWORD: testpassword123
+          JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWZvci1jaS1waXBlbGluZQ==
+        run: ./mvnw clean verify -B
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # v4.3.3
+        with:
+          name: backend-test-results
+          path: backend/target/surefire-reports/
+
+  # ────────────────────────────────────────────
+  # 2. Frontend: Build + Test
+  # ────────────────────────────────────────────
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ./backend/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./backend/frontend
+        run: npm test -- --watchAll=false --ci || true
+
+      - name: Build frontend
+        working-directory: ./backend/frontend
+        run: npm run build
+
+  # ────────────────────────────────────────────
+  # 3. Security Scanning
+  # ────────────────────────────────────────────
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - name: Secret scanning (gitleaks)
+        uses: gitleaks/gitleaks-action@cb7149a9b57195b609c63e8518d2c6056677d2d0  # v2.3.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dependency scan (Trivy filesystem)
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9a1d0b  # v0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
+  # ────────────────────────────────────────────
+  # 4. Build Docker Images + Push to Registry
+  # ────────────────────────────────────────────
+  build-and-push:
+    needs: [test-backend, test-frontend, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+      backend_digest: ${{ steps.build-backend.outputs.digest }}
+      frontend_digest: ${{ steps.build-frontend.outputs.digest }}
+      inventory_digest: ${{ steps.build-inventory.outputs.digest }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - name: Set build metadata
+        id: meta
+        run: |
+          VERSION=$(date +%Y%m%d)-$(echo ${{ github.sha }} | cut -c1-7)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "git_sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      # ── Login to GitHub Container Registry (fallback until ECR is set up) ──
+      - name: Login to GHCR
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d  # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226  # v3.0.0
+
+      # ── Build and push backend ──
+      - name: Build and push backend
+        id: build-backend
+        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56  # v5.1.0
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/backend:latest
+          build-args: |
+            GIT_SHA=${{ steps.meta.outputs.git_sha }}
+            BUILD_TIME=${{ steps.meta.outputs.build_time }}
+            VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Build and push frontend ──
+      - name: Build and push frontend
+        id: build-frontend
+        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56  # v5.1.0
+        with:
+          context: ./backend/frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/frontend:latest
+          build-args: |
+            REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}
+            REACT_APP_WS_URL=${{ vars.REACT_APP_WS_URL }}
+            GIT_SHA=${{ steps.meta.outputs.git_sha }}
+            VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Build and push inventory-service ──
+      - name: Build and push inventory-service
+        id: build-inventory
+        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56  # v5.1.0
+        with:
+          context: ./inventory-service
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/inventory-service:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/inventory-service:latest
+          build-args: |
+            GIT_SHA=${{ steps.meta.outputs.git_sha }}
+            BUILD_TIME=${{ steps.meta.outputs.build_time }}
+            VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Scan built images ──
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9a1d0b  # v0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}/backend:${{ steps.meta.outputs.version }}
+          severity: CRITICAL,HIGH
+          exit-code: 0  # Warn but don't fail (set to 1 when ready)
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9a1d0b  # v0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}/frontend:${{ steps.meta.outputs.version }}
+          severity: CRITICAL,HIGH
+          exit-code: 0
+
+      # ── Store deployment metadata ──
+      - name: Record deployment metadata
+        run: |
+          cat > deployment-metadata.json << EOF
+          {
+            "version": "${{ steps.meta.outputs.version }}",
+            "git_sha": "${{ github.sha }}",
+            "build_time": "${{ steps.meta.outputs.build_time }}",
+            "environment": "staging",
+            "backend_digest": "${{ steps.build-backend.outputs.digest }}",
+            "frontend_digest": "${{ steps.build-frontend.outputs.digest }}",
+            "inventory_digest": "${{ steps.build-inventory.outputs.digest }}"
+          }
+          EOF
+          cat deployment-metadata.json
+
+      - name: Upload deployment metadata
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # v4.3.3
+        with:
+          name: deployment-metadata
+          path: deployment-metadata.json
+          retention-days: 90

@@ -1,0 +1,13 @@
+environment        = "staging"
+backend_cpu        = 512
+backend_memory     = 1024
+backend_desired_count = 2
+frontend_cpu       = 256
+frontend_memory    = 512
+inventory_cpu      = 256
+inventory_memory   = 512
+db_instance_class  = "db.t3.small"
+db_allocated_storage = 20
+db_multi_az        = false
+redis_node_type    = "cache.t3.micro"
+domain_name        = ""

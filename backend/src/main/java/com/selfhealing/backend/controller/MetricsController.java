@@ -4,7 +4,6 @@ import com.selfhealing.backend.model.RecoveryMetric;
 import com.selfhealing.backend.repository.FailureMetricRepository;
 import com.selfhealing.backend.repository.RecoveryMetricRepository;
 import com.selfhealing.backend.service.CircuitBreakerService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,15 +13,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "${cors.allowed-origins}")
 @RestController
 public class MetricsController {
-    @Autowired
-    FailureMetricRepository failureMetricRepository;
-    @Autowired
-    CircuitBreakerService circuitBreakerService;
-    @Autowired
-    RecoveryMetricRepository repo;
+
+    private final FailureMetricRepository failureMetricRepository;
+    private final CircuitBreakerService circuitBreakerService;
+    private final RecoveryMetricRepository repo;
+
+    public MetricsController(FailureMetricRepository failureMetricRepository,
+                             CircuitBreakerService circuitBreakerService,
+                             RecoveryMetricRepository repo) {
+        this.failureMetricRepository = failureMetricRepository;
+        this.circuitBreakerService = circuitBreakerService;
+        this.repo = repo;
+    }
 
 
     @GetMapping("/metrics/failures")

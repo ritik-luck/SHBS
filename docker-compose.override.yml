@@ -1,0 +1,51 @@
+# Local-development overrides, loaded automatically by `docker compose up`.
+# Copy .env.example to .env and provide secure values before starting services.
+services:
+  db:
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev-password}
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_PASSWORD: ${DB_PASSWORD:-change-me}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+
+  inventory-service:
+    ports:
+      - "8081:8081"
+
+  nginx:
+    ports:
+      - "3000:80"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+
+  alertmanager:
+    ports:
+      - "9093:9093"
+
+  tempo:
+    ports:
+      - "3200:3200"
+
+  otel-collector:
+    ports:
+      - "4317:4317"
+      - "4318:4318"

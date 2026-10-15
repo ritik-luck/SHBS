@@ -1,0 +1,31 @@
+groups:
+  - name: slo_rules
+    rules:
+      # Fast Burn: 5-minute window
+      # Formula: (error rate over 5m) / error budget (0.001 for 99.9%)
+      - record: slo:burn_rate_5m
+        expr: (sum(rate(slo_requests_failed_total[5m])) / sum(rate(slo_requests_total_total[5m]))) / 0.001
+
+      # Slow Burn: 1-hour window
+      - record: slo:burn_rate_1h
+        expr: (sum(rate(slo_requests_failed_total[1h])) / sum(rate(slo_requests_total_total[1h]))) / 0.001
+
+  - name: slo_alerts
+    rules:
+      - alert: SLOFastBurn
+        expr: slo:burn_rate_5m > 14.4
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLO Fast Burn Detected"
+          description: "Burn rate is > 14.4x for the last 5 minutes. Preemptive healing required."
+
+      - alert: SLOSlowBurn
+        expr: slo:burn_rate_1h > 6.0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SLO Slow Burn Detected"
+          description: "Burn rate is > 6.0x for the last 1 hour. Sustained degradation detected."

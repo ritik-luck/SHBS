@@ -4,7 +4,6 @@ import com.selfhealing.backend.service.CircuitBreakerService;
 import com.selfhealing.backend.service.DegradedResponseService;
 import com.selfhealing.backend.service.FailureMetricService;
 import com.selfhealing.backend.service.FallbackService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,13 +14,20 @@ import java.util.Map;
 @RestController
 public class HelloController {
 
-    @Autowired
-    DegradedResponseService degradedService;
-    @Autowired
-    CircuitBreakerService circuitBreakerService;
-    @Autowired
-    FallbackService fallbackService;
+    private final DegradedResponseService degradedService;
+    private final CircuitBreakerService circuitBreakerService;
+    private final FallbackService fallbackService;
+    private final FailureMetricService failureMetricService;
 
+    public HelloController(DegradedResponseService degradedService,
+                           CircuitBreakerService circuitBreakerService,
+                           FallbackService fallbackService,
+                           FailureMetricService failureMetricService) {
+        this.degradedService = degradedService;
+        this.circuitBreakerService = circuitBreakerService;
+        this.fallbackService = fallbackService;
+        this.failureMetricService = failureMetricService;
+    }
 
 
     @RateLimiter(name = "apiLimiter", fallbackMethod = "rateLimitFallback")
@@ -52,19 +58,16 @@ public class HelloController {
         return ResponseEntity.ok(response);
     }
 
-    @Autowired
-    FailureMetricService failureMetricService;
+    public ResponseEntity<?> rateLimitFallback(Throwable t) {
+        failureMetricService.recordFailure("rate_limit", "api-service");
 
-        public ResponseEntity<?> rateLimitFallback(Throwable t) {
-            failureMetricService.recordFailure("rate_limit", "api-service");
-
-            return ResponseEntity
-                    .status(429)
-                    .header("Retry-After", "10")
-                    .body(Map.of(
-                            "error", "Too many requests",
-                            "message", "Rate limit exceeded",
-                            "timestamp", System.currentTimeMillis()
-                    ));
-        }
+        return ResponseEntity
+                .status(429)
+                .header("Retry-After", "10")
+                .body(Map.of(
+                        "error", "Too many requests",
+                        "message", "Rate limit exceeded",
+                        "timestamp", System.currentTimeMillis()
+                ));
     }
+}

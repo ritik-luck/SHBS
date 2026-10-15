@@ -1,0 +1,13 @@
+environment        = "dev"
+backend_cpu        = 256
+backend_memory     = 512
+backend_desired_count = 1
+frontend_cpu       = 256
+frontend_memory    = 256
+inventory_cpu      = 256
+inventory_memory   = 256
+db_instance_class  = "db.t3.micro"
+db_allocated_storage = 20
+db_multi_az        = false
+redis_node_type    = "cache.t3.micro"
+domain_name        = ""
